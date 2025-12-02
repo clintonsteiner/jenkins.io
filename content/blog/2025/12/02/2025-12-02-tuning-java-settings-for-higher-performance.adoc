@@ -1,0 +1,65 @@
+---
+layout: post
+title: Tuning Jenkins Java Settings For Responsiveness and Stability with Large Instances 
+tags:
+- performance
+- scalability
+- administration
+- java17
+- java21
+- java25
+- gc
+opengraph:
+  image: /images/post-images/2025/12/02/2025-12-02-tuning-java-settings-for-higher-performance.png
+discourse: true
+authors:
+  - clintonsteiner
+---
+
+image:/images/post-images/2025/12/02/2025-12-02-tuning-java-settings-for-higher-performance.png[Tuning Java Settings for Higher Performance, 50%]
+
+Hello, Jenkins Community!
+
+As of Java 17, the JVM’s defaults have improved to the point where hand-tuned configurations often 
+make performance worse rather than better. 
+
+The runtime now:
+
+* Detects container limits and sizes heaps/threads accordingly
+* Optimizes pause times automatically using rel-time profiling
+* Allocates memory more efficiently
+
+Using `-XX:MaxRAMPercentage=60.0 and -XX:InitialRAMPercentage` settings instead of `-Xms and -Xmx` 
+has resulted in fewer pauses, better stability, and less memory pressure.
+
+== Recommended “Magic Settings” for Java 17, 21, and up
+
+[source,bash]
+----
+# Example: Jenkins controller in an 8–16GB container
+JAVA_OPTS="
+  -XX:+UseG1GC
+  -XX:MaxRAMPercentage=60.0
+  -XX:InitialRAMPercentage=20.0
+"
+----
+
+For a more in depth analysis of what Jenkins does under the hood, view the original 2016 article here:
+
+link:/blog/2016/11/21/gc-tuning/#the-magic-settings/[GC Tuning, the magic settings]
+
+Cloudbees also has an article here which is more up to date
+
+link:https://docs.cloudbees.com/docs/cloudbees-ci-kb/latest/best-practices/jvm-memory-settings-best-practice/[JVM Memory Settings Best Practice]
+
+== Notes on older Java versions
+
+If you still run Java 11 or earlier:
+
+* Use fixed heap sizing (`-Xms` / `-Xmx`), because container support varies.
+* Ensure `-XX:+UseContainerSupport` is set (depending on build).
+
+== Quick Rules of Thumb
+
+* Controllers: Prefer **G1**, aim for **50–65%** of container RAM as heap.
+* Don’t give the JVM the entire container: leave space for OS + native memory.
